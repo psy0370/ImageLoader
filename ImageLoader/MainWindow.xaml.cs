@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace ImageLoader
@@ -60,23 +61,29 @@ namespace ImageLoader
 
                         try
                         {
-                            (var width, var height, var times) = decoder.Decode(entry, images);
-                            ImageArea.Width = width;
-                            ImageArea.Height = height;
-
-                            if (images.Count == 1)
+                            Task.Factory.StartNew(() =>
                             {
-                                // 画像が一枚の時はそのまま表示
+                                (var width, var height, var times) = decoder.Decode(entry, images);
                                 Dispatcher.BeginInvoke(new Action(() =>
                                 {
-                                    ImageArea.Source = images[0].CreateBitmap();
+                                    ImageArea.Width = width;
+                                    ImageArea.Height = height;
                                 }));
-                            }
-                            else
-                            {
-                                // 画像が複数ある時はアニメーション表示
-                                Animation.Play(images, width, height, times, ImageArea, tokenSource);
-                            }
+
+                                if (images.Count == 1)
+                                {
+                                    // 画像が一枚の時はそのまま表示
+                                    Dispatcher.BeginInvoke(new Action(() =>
+                                    {
+                                        ImageArea.Source = images[0].CreateBitmap();
+                                    }));
+                                }
+                                else
+                                {
+                                    // 画像が複数ある時はアニメーション表示
+                                    Animation.Play(images, width, height, times, ImageArea, tokenSource);
+                                }
+                            });
                         }
                         catch (Exception ex)
                         {
