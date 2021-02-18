@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 
 namespace ImageLoader
 {
@@ -15,7 +16,7 @@ namespace ImageLoader
     public partial class MainWindow : Window
     {
         private readonly List<FrameModel> images = new List<FrameModel>();
-        private CancellationTokenSource tokenSource = null;
+        private readonly CancellationTokenSource tokenSource = null;
 
         public MainWindow()
         {
@@ -91,6 +92,19 @@ namespace ImageLoader
                         }
                     }
                 }
+
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// コピーコマンドの処理を定義します。
+        /// </summary>
+        private void CommandCopy(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (ImageArea.Source != null)
+            {
+                Clipboard.SetImage((System.Windows.Media.Imaging.BitmapSource)ImageArea.Source);
             }
         }
     }
