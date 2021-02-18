@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 
 namespace ImageLoader
 {
@@ -14,7 +16,8 @@ namespace ImageLoader
     public partial class MainWindow : Window
     {
         private readonly List<FrameModel> images = new List<FrameModel>();
-        private CancellationTokenSource tokenSource = null;
+        private readonly CancellationTokenSource tokenSource = null;
+        private volatile bool isReading = false;
 
         public MainWindow()
         {
@@ -26,7 +29,7 @@ namespace ImageLoader
         /// </summary>
         private void Window_DragOver(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (!isReading && e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 e.Effects = DragDropEffects.Copy;
             }
@@ -44,6 +47,7 @@ namespace ImageLoader
         private void Window_Drop(object sender, DragEventArgs e)
         {
             var entries = (string[])e.Data.GetData(DataFormats.FileDrop);
+            isReading = true;
 
             foreach (var entry in entries)
             {
@@ -60,23 +64,31 @@ namespace ImageLoader
 
                         try
                         {
-                            (var width, var height, var times) = decoder.Decode(entry, images);
-                            ImageArea.Width = width;
-                            ImageArea.Height = height;
-
-                            if (images.Count == 1)
+                            Task.Factory.StartNew(() =>
                             {
-                                // 画像が一枚の時はそのまま表示
+                                (var width, var height, var times) = decoder.Decode(entry, images);
                                 Dispatcher.BeginInvoke(new Action(() =>
                                 {
-                                    ImageArea.Source = images[0].CreateBitmap();
+                                    ImageArea.Width = width;
+                                    ImageArea.Height = height;
                                 }));
-                            }
-                            else
-                            {
-                                // 画像が複数ある時はアニメーション表示
-                                Animation.Play(images, width, height, times, ImageArea, tokenSource);
-                            }
+
+                                if (images.Count == 1)
+                                {
+                                    // 画像が一枚の時はそのまま表示
+                                    Dispatcher.BeginInvoke(new Action(() =>
+                                    {
+                                        ImageArea.Source = images[0].CreateBitmap();
+                                    }));
+                                }
+                                else
+                                {
+                                    // 画像が複数ある時はアニメーション表示
+                                    Animation.Play(images, width, height, times, ImageArea, tokenSource);
+                                }
+
+                                isReading = false;
+                            });
                         }
                         catch (Exception ex)
                         {
@@ -84,6 +96,19 @@ namespace ImageLoader
                         }
                     }
                 }
+
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// コピーコマンドの処理を定義します。
+        /// </summary>
+        private void CommandCopy(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (ImageArea.Source != null)
+            {
+                Clipboard.SetImage((System.Windows.Media.Imaging.BitmapSource)ImageArea.Source);
             }
         }
     }
