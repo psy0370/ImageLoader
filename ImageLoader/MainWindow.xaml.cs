@@ -17,6 +17,7 @@ namespace ImageLoader
     {
         private readonly List<FrameModel> images = new List<FrameModel>();
         private readonly CancellationTokenSource tokenSource = null;
+        private volatile bool isReading = false;
 
         public MainWindow()
         {
@@ -28,7 +29,7 @@ namespace ImageLoader
         /// </summary>
         private void Window_DragOver(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (!isReading && e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 e.Effects = DragDropEffects.Copy;
             }
@@ -46,6 +47,7 @@ namespace ImageLoader
         private void Window_Drop(object sender, DragEventArgs e)
         {
             var entries = (string[])e.Data.GetData(DataFormats.FileDrop);
+            isReading = true;
 
             foreach (var entry in entries)
             {
@@ -84,6 +86,8 @@ namespace ImageLoader
                                     // 画像が複数ある時はアニメーション表示
                                     Animation.Play(images, width, height, times, ImageArea, tokenSource);
                                 }
+
+                                isReading = false;
                             });
                         }
                         catch (Exception ex)
