@@ -329,14 +329,17 @@ namespace ImageLoader.Models
         /// <returns>読み込んだ値を返します。</returns>
         private uint ReadUINT(Stream stream)
         {
-            var buffer = new byte[4];
-            var count = stream.Read(buffer, 0, 4);
-            if (count != 4)
+            var b1 = stream.ReadByte();
+            var b2 = stream.ReadByte();
+            var b3 = stream.ReadByte();
+            var b4 = stream.ReadByte();
+
+            if (b1 == -1 || b2 == -1 || b3 == -1 || b4 == -1)
             {
                 throw new IOException("必要な長さのデータを読み込めません");
             }
 
-            return (uint)buffer[0] << 24 | (uint)buffer[1] << 16 | (uint)buffer[2] << 8 | buffer[3];
+            return (uint)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
         }
 
         /// <summary>
